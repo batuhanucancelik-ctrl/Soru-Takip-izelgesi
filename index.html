@@ -1,0 +1,383 @@
+import { useState, useEffect, useRef, useMemo } from "react";
+
+const SUBJECTS = ['TÜR','MAT','GEO','FİZ','KİM','BİY','TAR','COĞ','FEL','DİN'];
+const DAYS = ['PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ','PAZAR'];
+const KEY = 'soru-takip-shared-v1';
+const n = v => parseFloat(v) || 0;
+const calcNet = (d, y) => +(n(d) - n(y) / 4).toFixed(2);
+
+const mkDay = () => ({
+  subjects: Object.fromEntries(SUBJECTS.map(s => [s, ''])),
+  sure: '',
+  paragraf: { soruSayisi:'', dogru:'', yanlis:'', bos:'', yayin:'', sure:'' },
+  problem:  { soruSayisi:'', dogru:'', yanlis:'', bos:'', yayin:'', sure:'' }
+});
+
+const mkWeek = (num) => ({
+  id: `${Date.now()}-${num}`,
+  name: `${num}. Hafta`,
+  days: Object.fromEntries(DAYS.map(d => [d, mkDay()]))
+});
+
+const weekTotals = (week) => {
+  const subj = Object.fromEntries(SUBJECTS.map(s => [s, 0]));
+  let sure = 0;
+  const para = { soruSayisi:0, dogru:0, yanlis:0, bos:0, sure:0 };
+  const prob = { soruSayisi:0, dogru:0, yanlis:0, bos:0, sure:0 };
+  DAYS.forEach(d => {
+    const day = week.days[d];
+    SUBJECTS.forEach(s => subj[s] += n(day.subjects[s]));
+    sure += n(day.sure);
+    ['soruSayisi','dogru','yanlis','bos','sure'].forEach(f => {
+      para[f] += n(day.paragraf[f]);
+      prob[f] += n(day.problem[f]);
+    });
+  });
+  const subjTotal = Object.values(subj).reduce((a,b)=>a+b,0);
+  return {
+    subjects: subj, sure,
+    paragraf: { ...para, net: calcNet(para.dogru, para.yanlis) },
+    problem:  { ...prob, net: calcNet(prob.dogru, prob.yanlis) },
+    subjTotal,
+    total: subjTotal + para.soruSayisi + prob.soruSayisi
+  };
+};
+
+export default function App() {
+  const [weeks, setWeeks] = useState([mkWeek(1)]);
+  const [wIdx, setWIdx]   = useState(0);
+  const [tab, setTab]     = useState('dersler');
+  const [status, setStatus] = useState('syncing');
+  const timer = useRef(null);
+
+  // Load shared data
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get(KEY, true);
+        if (r?.value) {
+          const d = JSON.parse(r.value);
+          if (d?.weeks?.length) setWeeks(d.weeks);
+        }
+      } catch(e) {}
+      setStatus('saved');
+    })();
+  }, []);
+
+  const persist = (w) => {
+    setStatus('saving');
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      try {
+        await window.storage.set(KEY, JSON.stringify({ weeks: w }), true);
+        setStatus('saved');
+      } catch(e) { setStatus('error'); }
+    }, 600);
+  };
+
+  const update = (weekIdx, day, section, field, value) => {
+    setWeeks(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      if (section === 'subjects') next[weekIdx].days[day].subjects[field] = value;
+      else if (section === 'sure')  next[weekIdx].days[day].sure = value;
+      else                          next[weekIdx].days[day][section][field] = value;
+      persist(next);
+      return next;
+    });
+  };
+
+  const addWeek = () => {
+    setWeeks(prev => {
+      const next = [...prev, mkWeek(prev.length + 1)];
+      persist(next);
+      setTimeout(() => setWIdx(next.length - 1), 0);
+      return next;
+    });
+  };
+
+  const cw  = weeks[wIdx] || weeks[0];
+  const cwt = useMemo(() => weekTotals(cw), [cw]);
+
+  const gt = useMemo(() => {
+    const subj = Object.fromEntries(SUBJECTS.map(s => [s, 0]));
+    let para = 0, prob = 0;
+    weeks.forEach(w => {
+      const t = weekTotals(w);
+      SUBJECTS.forEach(s => subj[s] += t.subjects[s]);
+      para += t.paragraf.soruSayisi;
+      prob += t.problem.soruSayisi;
+    });
+    const total = Object.values(subj).reduce((a,b)=>a+b,0) + para + prob;
+    return { ...subj, PARAGRAF: para, PROBLEM: prob, TOPLAM: total };
+  }, [weeks]);
+
+  // ── Styles ──
+  const C = {
+    bg: '#f6f7f9', surface: '#fff', border: '#e4e7ec',
+    primary: '#111', accent: '#2563eb', muted: '#8492a6',
+    green: '#16a34a', red: '#dc2626', amber: '#d97706',
+    subjRow: '#f8faff', totalRow: '#eff6ff'
+  };
+
+  const th = (extra={}) => ({
+    padding: '9px 6px', textAlign: 'center', background: '#f1f5f9',
+    color: C.muted, fontSize: 10, fontWeight: 600,
+    letterSpacing: '0.07em', textTransform: 'uppercase',
+    borderBottom: `2px solid ${C.border}`,
+    position: 'sticky', top: 0, zIndex: 2, whiteSpace: 'nowrap',
+    ...extra
+  });
+
+  const td = (extra={}) => ({
+    padding: '5px 4px', textAlign: 'center',
+    borderBottom: `1px solid ${C.border}`,
+    fontSize: 13, whiteSpace: 'nowrap', ...extra
+  });
+
+  const stickyDay = (extra={}) => ({
+    ...td(), textAlign: 'left', paddingLeft: 10, fontWeight: 600,
+    fontSize: 10, letterSpacing: '0.04em', color: '#444',
+    background: '#f8fafc', position: 'sticky', left: 0, zIndex: 1,
+    borderRight: `1px solid ${C.border}`, minWidth: 108, ...extra
+  });
+
+  const inputStyle = {
+    width: 46, border: 'none', background: 'transparent',
+    textAlign: 'center', fontSize: 13, outline: 'none',
+    color: C.primary, fontFamily: 'monospace', padding: 0
+  };
+
+  const NI = ({ val, onChange }) => (
+    <input type="number" value={val} onChange={e => onChange(e.target.value)}
+      style={inputStyle} min="0" />
+  );
+
+  const TxtI = ({ val, onChange }) => (
+    <input type="text" value={val} onChange={e => onChange(e.target.value)}
+      style={{ ...inputStyle, width: 52 }} placeholder="—" />
+  );
+
+  const statusColor = { saved: C.green, saving: C.amber, error: C.red, syncing: C.muted };
+  const statusLabel = { saved: 'Kaydedildi', saving: 'Kaydediliyor…', error: 'Hata!', syncing: 'Yükleniyor…' };
+
+  return (
+    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: C.bg, minHeight: '100vh', color: C.primary }}>
+
+      {/* ── HEADER ── */}
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '13px 20px', position: 'sticky', top: 0, zIndex: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>BU</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Batuhan Uçançelik</div>
+              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Soru Takip Defteri</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: statusColor[status] }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor[status], display: 'inline-block', boxShadow: `0 0 6px ${statusColor[status]}44` }}></span>
+              {statusLabel[status]}
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 14 }}>🌐</span> Çok cihaz senkron
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── GRAND TOTALS BAR ── */}
+      <div style={{ background: '#0f172a', color: '#fff', padding: '14px 20px' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+          <div style={{ fontSize: 9, letterSpacing: '0.12em', color: '#64748b', marginBottom: 10, textTransform: 'uppercase', fontWeight: 600 }}>
+            Toplam Çözülen Soru Sayısı
+          </div>
+          <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', overflowX: 'auto', paddingBottom: 2 }}>
+            {SUBJECTS.map((s, i) => (
+              <div key={s} style={{ textAlign: 'center', minWidth: 48, paddingRight: 16, borderRight: i < SUBJECTS.length - 1 ? '1px solid #1e293b' : 'none', marginRight: 16 }}>
+                <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#f1f5f9', lineHeight: 1 }}>{gt[s] || 0}</div>
+                <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>{s}</div>
+              </div>
+            ))}
+            <div style={{ textAlign: 'center', minWidth: 56, paddingRight: 16, borderRight: '1px solid #1e293b', marginRight: 16 }}>
+              <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#60a5fa', lineHeight: 1 }}>{gt.PARAGRAF || 0}</div>
+              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>PARAGRAF</div>
+            </div>
+            <div style={{ textAlign: 'center', minWidth: 56, paddingRight: 20, borderRight: '1px solid #334155', marginRight: 20 }}>
+              <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#f472b6', lineHeight: 1 }}>{gt.PROBLEM || 0}</div>
+              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>PROBLEM</div>
+            </div>
+            <div style={{ textAlign: 'center', minWidth: 60 }}>
+              <div style={{ fontSize: 28, fontFamily: 'monospace', fontWeight: 900, color: '#4ade80', lineHeight: 1 }}>{gt.TOPLAM || 0}</div>
+              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>TOPLAM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '20px 16px 40px' }}>
+
+        {/* Week tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
+          {weeks.map((w, i) => (
+            <button key={w.id} onClick={() => setWIdx(i)} style={{
+              padding: '8px 18px', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap',
+              border: `1.5px solid ${wIdx === i ? C.accent : C.border}`,
+              background: wIdx === i ? C.accent : C.surface,
+              color: wIdx === i ? '#fff' : C.primary,
+              fontWeight: 600, fontSize: 13, transition: 'all 0.15s',
+              fontFamily: 'inherit', boxShadow: wIdx === i ? '0 2px 8px rgba(37,99,235,0.25)' : 'none'
+            }}>{w.name}</button>
+          ))}
+          <button onClick={addWeek} style={{
+            padding: '8px 14px', borderRadius: 8, border: `1.5px dashed ${C.border}`,
+            background: 'transparent', color: C.muted, cursor: 'pointer',
+            fontSize: 13, whiteSpace: 'nowrap', fontFamily: 'inherit',
+            transition: 'border-color 0.15s'
+          }}>+ Hafta Ekle</button>
+        </div>
+
+        {/* Section tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: C.surface, padding: 4, borderRadius: 10, border: `1px solid ${C.border}`, width: 'fit-content', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          {[
+            { id: 'dersler',  label: '📚 Dersler' },
+            { id: 'paragraf', label: '📖 Paragraf' },
+            { id: 'problem',  label: '🧮 Problem' }
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: '7px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              background: tab === t.id ? C.accent : 'transparent',
+              color: tab === t.id ? '#fff' : C.muted,
+              fontWeight: 600, fontSize: 13, transition: 'all 0.15s', fontFamily: 'inherit'
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* Table */}
+        <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.05)', marginBottom: 14 }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: tab === 'dersler' ? 680 : 500 }}>
+              <thead>
+                <tr>
+                  <th style={th({ textAlign: 'left', paddingLeft: 10, position: 'sticky', left: 0, zIndex: 3, borderRight: `1px solid ${C.border}`, minWidth: 108 })}>Gün</th>
+
+                  {tab === 'dersler' && <>
+                    {SUBJECTS.map(s => <th key={s} style={th()}>{s}</th>)}
+                    <th style={th({ color: C.accent })}>Toplam</th>
+                    <th style={th()}>Süre</th>
+                  </>}
+
+                  {tab !== 'dersler' && <>
+                    <th style={th()}>Soru</th>
+                    <th style={th({ color: C.green })}>Doğru</th>
+                    <th style={th({ color: C.red })}>Yanlış</th>
+                    <th style={th()}>Boş</th>
+                    <th style={th()}>Yayın</th>
+                    <th style={th()}>Süre</th>
+                    <th style={th({ color: C.green, background: '#f0fdf4' })}>Net</th>
+                  </>}
+                </tr>
+              </thead>
+              <tbody>
+                {DAYS.map((day, di) => {
+                  const dd = cw.days[day];
+                  const daySubjTotal = SUBJECTS.reduce((a,s)=>a+n(dd.subjects[s]),0);
+                  const sec = tab === 'paragraf' ? dd.paragraf : dd.problem;
+                  const dayNet = calcNet(sec.dogru, sec.yanlis);
+                  const hasData = tab !== 'dersler' ? (n(sec.dogru) || n(sec.yanlis) || n(sec.soruSayisi)) : false;
+
+                  return (
+                    <tr key={day} style={{ background: di % 2 === 0 ? '#fff' : '#fafbfd' }}>
+                      <td style={stickyDay()}>{day}</td>
+
+                      {tab === 'dersler' && <>
+                        {SUBJECTS.map(s => (
+                          <td key={s} style={td()}>
+                            <NI val={dd.subjects[s]} onChange={v => update(wIdx, day, 'subjects', s, v)} />
+                          </td>
+                        ))}
+                        <td style={td({ fontWeight: 700, color: daySubjTotal ? C.accent : C.muted, fontFamily: 'monospace' })}>
+                          {daySubjTotal || '—'}
+                        </td>
+                        <td style={td()}>
+                          <NI val={dd.sure} onChange={v => update(wIdx, day, 'sure', null, v)} />
+                        </td>
+                      </>}
+
+                      {tab !== 'dersler' && <>
+                        <td style={td()}><NI val={sec.soruSayisi} onChange={v => update(wIdx, day, tab, 'soruSayisi', v)} /></td>
+                        <td style={td()}><NI val={sec.dogru}      onChange={v => update(wIdx, day, tab, 'dogru', v)} /></td>
+                        <td style={td()}><NI val={sec.yanlis}     onChange={v => update(wIdx, day, tab, 'yanlis', v)} /></td>
+                        <td style={td()}><NI val={sec.bos}        onChange={v => update(wIdx, day, tab, 'bos', v)} /></td>
+                        <td style={td()}><TxtI val={sec.yayin}    onChange={v => update(wIdx, day, tab, 'yayin', v)} /></td>
+                        <td style={td()}><NI val={sec.sure}       onChange={v => update(wIdx, day, tab, 'sure', v)} /></td>
+                        <td style={td({ background: '#f0fdf4', fontWeight: 700, fontFamily: 'monospace', color: hasData ? (dayNet >= 0 ? C.green : C.red) : C.muted })}>
+                          {hasData ? dayNet : '—'}
+                        </td>
+                      </>}
+                    </tr>
+                  );
+                })}
+
+                {/* TOTALS ROW */}
+                <tr style={{ background: C.totalRow, borderTop: `2px solid ${C.border}` }}>
+                  <td style={stickyDay({ background: '#dbeafe', color: C.accent, fontWeight: 700 })}>TOPLAM</td>
+
+                  {tab === 'dersler' && <>
+                    {SUBJECTS.map(s => (
+                      <td key={s} style={td({ fontWeight: 700, fontFamily: 'monospace', color: cwt.subjects[s] ? C.primary : C.muted })}>
+                        {cwt.subjects[s] || '—'}
+                      </td>
+                    ))}
+                    <td style={td({ fontWeight: 800, color: C.accent, fontFamily: 'monospace', fontSize: 15 })}>
+                      {cwt.subjTotal || '—'}
+                    </td>
+                    <td style={td({ fontWeight: 700, fontFamily: 'monospace', color: cwt.sure ? C.primary : C.muted })}>
+                      {cwt.sure || '—'}
+                    </td>
+                  </>}
+
+                  {tab !== 'dersler' && (() => {
+                    const t = tab === 'paragraf' ? cwt.paragraf : cwt.problem;
+                    const hasData = t.soruSayisi || t.dogru;
+                    return <>
+                      {['soruSayisi','dogru','yanlis','bos'].map(f => (
+                        <td key={f} style={td({ fontWeight: 700, fontFamily: 'monospace', color: t[f] ? C.primary : C.muted })}>
+                          {t[f] || '—'}
+                        </td>
+                      ))}
+                      <td style={td({ color: C.muted })}>—</td>
+                      <td style={td({ fontWeight: 700, fontFamily: 'monospace', color: t.sure ? C.primary : C.muted })}>{t.sure || '—'}</td>
+                      <td style={td({ background: '#dcfce7', fontWeight: 800, fontFamily: 'monospace', fontSize: 15, color: hasData ? (t.net >= 0 ? C.green : C.red) : C.muted })}>
+                        {hasData ? t.net : '—'}
+                      </td>
+                    </>;
+                  })()}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+          {[
+            { label: 'Hafta Toplam', val: cwt.total || '—', color: C.accent },
+            { label: 'Paragraf Net', val: cwt.paragraf.soruSayisi ? cwt.paragraf.net : '—', color: cwt.paragraf.net >= 0 ? C.green : C.red },
+            { label: 'Problem Net',  val: cwt.problem.soruSayisi  ? cwt.problem.net  : '—', color: cwt.problem.net  >= 0 ? C.green : C.red },
+            { label: 'Toplam Süre',  val: cwt.sure ? `${cwt.sure} dk` : '—', color: C.muted },
+          ].map(card => (
+            <div key={card.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>{card.label}</div>
+              <div style={{ fontSize: 26, fontFamily: 'monospace', fontWeight: 700, color: card.color }}>{card.val}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11, color: C.muted, textAlign: 'center' }}>
+          Veriler tüm cihazlarda paylaşımlı olarak saklanır · Net = Doğru − Yanlış÷4
+        </div>
+      </div>
+    </div>
+  );
+}
