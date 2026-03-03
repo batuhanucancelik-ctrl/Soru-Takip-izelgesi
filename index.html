@@ -4,557 +4,399 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Soru Takip — Batuhan Uçançelik</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
 ::-webkit-scrollbar{height:5px;width:5px}
-::-webkit-scrollbar-track{background:#f1f5f9}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
 button{font-family:'Inter',sans-serif;cursor:pointer}
 
-/* Header */
-#header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:20;
-  box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.hdr-inner{max-width:1160px;margin:0 auto;padding:0 16px;display:flex;
-  align-items:center;justify-content:space-between;height:56px;gap:12}
-.logo{width:34px;height:34px;border-radius:9px;background:#2563eb;display:flex;
-  align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
-.hdr-name{font-weight:700;font-size:14px;line-height:1.2}
-.hdr-sub{font-size:10px;color:#94a3b8;margin-top:1px}
-#sync-btn{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;
-  border:1.5px solid #bfdbfe;background:#eff6ff;color:#2563eb;font-size:12px;
-  font-weight:600;transition:all .15s}
-#sync-btn.has-room{border-color:#86efac;background:#f0fdf4;color:#16a34a}
+#hdr{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hi{max-width:1160px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;gap:12}
+.logo{width:34px;height:34px;border-radius:9px;background:#2563eb;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
+.hn{font-weight:700;font-size:14px;line-height:1.2}
+.hs{font-size:10px;color:#94a3b8;margin-top:1px}
+.cbtn{padding:7px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;transition:all .15s}
+.cbtn:hover{background:#1d4ed8}
+.cbtn.ok{background:#16a34a}
 
-/* Grand totals bar */
-#grand-bar{background:#0f172a;color:#fff;overflow-x:auto}
-.grand-inner{max-width:1160px;margin:0 auto;padding:16px 20px}
-.grand-title{font-size:9px;color:#475569;letter-spacing:.12em;text-transform:uppercase;
-  font-weight:600;margin-bottom:12px}
-#grand-grid{display:flex;align-items:flex-end;gap:0;min-width:max-content}
-.grand-col{text-align:center;padding-right:16px;margin-right:16px;
-  border-right:1px solid #1e293b}
-.grand-col:last-child{border-right:none;padding-right:0;margin-right:0}
-.grand-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;
-  color:#f1f5f9;line-height:1}
-.grand-val.big{font-size:28px;font-weight:900;color:#4ade80}
-.grand-val.blue{color:#60a5fa}
-.grand-val.pink{color:#f472b6}
-.grand-lbl{font-size:9px;color:#475569;margin-top:5px;letter-spacing:.06em}
+#sbar{background:#1e3a8a;padding:8px 16px}
+.si{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.sl{font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap}
+.su{font-family:'JetBrains Mono',monospace;font-size:11px;color:#bfdbfe;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Main content */
-#content{max-width:1160px;margin:0 auto;padding:18px 16px 48px}
+#stbar{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:6px 16px;font-size:11px;color:#64748b;display:flex;align-items:center;gap:7px}
+.sd{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;transition:background .3s}
+.sd.saving{background:#f59e0b}
+.sd.err{background:#ef4444}
 
-/* Notice */
-#sync-notice{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;
-  padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;
-  align-items:center;gap:10px;font-size:13px}
-#sync-notice.hidden{display:none}
+#gbar{background:#0f172a;overflow-x:auto}
+.gi{max-width:1160px;margin:0 auto;padding:14px 20px}
+.gt{font-size:9px;color:#475569;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:10px}
+#gg{display:flex;align-items:flex-end;min-width:max-content}
+.gc{text-align:center;padding-right:14px;margin-right:14px;border-right:1px solid #1e293b}
+.gc.sep{border-right:1px solid #334155;padding-right:18px;margin-right:18px}
+.gc.last{border-right:none;padding-right:0;margin-right:0}
+.gv{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#f1f5f9;line-height:1}
+.gv.big{font-size:26px;font-weight:900;color:#4ade80}
+.gv.blue{color:#60a5fa}
+.gv.pink{color:#f472b6}
+.gl{font-size:9px;color:#475569;margin-top:4px;letter-spacing:.06em}
 
-/* Week tabs */
-#week-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
-.week-tab{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;
-  background:#fff;color:#334155;font-weight:600;font-size:13px;
-  white-space:nowrap;transition:all .15s}
-.week-tab.active{border-color:#2563eb;background:#2563eb;color:#fff;
-  box-shadow:0 2px 8px rgba(37,99,235,.2)}
-#add-week-btn{padding:8px 14px;border-radius:8px;border:1.5px dashed #e2e8f0;
-  background:transparent;color:#94a3b8;font-size:13px;white-space:nowrap}
+#cnt{max-width:1160px;margin:0 auto;padding:16px 16px 48px}
+#wtabs{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.wtab{padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#334155;font-weight:600;font-size:13px;white-space:nowrap;transition:all .15s}
+.wtab.active{border-color:#2563eb;background:#2563eb;color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.2)}
+.wadd{padding:7px 12px;border-radius:8px;border:1.5px dashed #e2e8f0;background:transparent;color:#94a3b8;font-size:13px;white-space:nowrap}
+#stabs{display:flex;gap:4px;margin-bottom:10px;background:#fff;padding:4px;border-radius:10px;border:1px solid #e2e8f0;width:fit-content}
+.stab{padding:7px 16px;border-radius:7px;border:none;background:transparent;color:#64748b;font-weight:600;font-size:13px;transition:all .15s}
+.stab.active{background:#2563eb;color:#fff}
 
-/* Section tabs */
-#sec-tabs{display:flex;gap:4px;margin-bottom:12px;background:#fff;padding:4px;
-  border-radius:10px;border:1px solid #e2e8f0;width:fit-content;
-  box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.sec-tab{padding:7px 16px;border-radius:7px;border:none;background:transparent;
-  color:#64748b;font-weight:600;font-size:13px;transition:all .15s}
-.sec-tab.active{background:#2563eb;color:#fff}
-
-/* Table */
-#table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;
-  overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);margin-bottom:14px}
-.tbl-scroll{overflow-x:auto}
+#twrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);margin-bottom:12px}
+.tscroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-th{padding:9px 6px;text-align:center;background:#f8fafc;color:#64748b;
-  font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
-  border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:2;white-space:nowrap}
-th.day-th{text-align:left;padding-left:10px;position:sticky;left:0;z-index:3;
-  border-right:1px solid #e2e8f0;min-width:108px;background:#f8fafc}
-th.blue{color:#2563eb;background:#eff6ff}
-th.green{color:#16a34a}
-th.net-th{color:#16a34a;background:#f0fdf4}
-td{padding:5px 4px;text-align:center;border-bottom:1px solid #f1f5f9;
-  font-size:13px;white-space:nowrap}
-td.day-td{padding:7px 10px;text-align:left;font-weight:600;font-size:10px;
-  letter-spacing:.04em;color:#475569;background:#f8fafc;position:sticky;left:0;
-  z-index:1;border-right:1px solid #e2e8f0;min-width:108px}
+th{padding:9px 6px;text-align:center;background:#f8fafc;color:#64748b;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:2;white-space:nowrap}
+th.dh{text-align:left;padding-left:10px;position:sticky;left:0;z-index:3;border-right:1px solid #e2e8f0;min-width:112px;background:#f8fafc}
+td{padding:5px 4px;text-align:center;border-bottom:1px solid #f1f5f9;font-size:13px;white-space:nowrap}
+td.dc{padding:7px 10px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.04em;color:#475569;background:#f8fafc;position:sticky;left:0;z-index:1;border-right:1px solid #e2e8f0;min-width:112px}
 tr.odd td{background:#fafbfd}
-tr.odd td.day-td{background:#f8fafc}
-tr.total-row td{background:#eff6ff;font-weight:700;
-  font-family:'JetBrains Mono',monospace;font-size:13px}
-tr.total-row td.day-td{background:#dbeafe;color:#2563eb;font-weight:700}
-tr.total-row td.big-total{background:#dbeafe;font-size:15px;font-weight:800;color:#2563eb}
-tr.total-row td.net-total{background:#dcfce7;font-size:15px;font-weight:800}
-.cell-input{width:42px;border:none;background:transparent;text-align:center;
-  font-size:13px;outline:none;color:#0f172a;font-family:'JetBrains Mono',monospace;padding:0}
-.cell-input.wide{width:54px;font-size:12px;color:#64748b}
+tr.odd td.dc{background:#f8fafc}
+tr.tot td{background:#eff6ff;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:13px;border-top:2px solid #e2e8f0}
+tr.tot td.dc{background:#dbeafe;color:#2563eb;font-weight:700;font-size:10px}
+.ci{width:42px;border:none;background:transparent;text-align:center;font-size:13px;outline:none;color:#0f172a;font-family:'JetBrains Mono',monospace;padding:0}
+.ci.w{width:54px;font-size:12px;color:#64748b}
 
-/* Summary cards */
-#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;
-  box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.card-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
-.card-value{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700}
-.card-value.blue{color:#2563eb}
-.card-value.green{color:#16a34a}
-.card-value.red{color:#dc2626}
-.card-value.muted{color:#64748b}
-
-#footer{margin-top:12px;font-size:11px;color:#94a3b8;text-align:center}
-
-/* Modal */
-#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;
-  display:flex;align-items:center;justify-content:center;padding:16px}
-#modal-overlay.hidden{display:none}
-.modal{background:#fff;border-radius:16px;padding:28px;max-width:420px;width:100%;
-  box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.modal-title{font-weight:700;font-size:17px}
-.room-box{background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;
-  padding:16px;margin:16px 0;text-align:center}
-.room-code{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;
-  color:#15803d;letter-spacing:4px;word-break:break-all}
-.modal-input{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
-  font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;letter-spacing:1px;
-  text-transform:uppercase}
-.modal-input:focus{border-color:#93c5fd}
-.btn-primary{padding:10px 16px;background:#2563eb;color:#fff;border:none;
-  border-radius:8px;font-weight:600;font-size:13px;transition:opacity .15s}
-.btn-primary:hover{opacity:.85}
-.btn-dark{width:100%;padding:11px;background:#0f172a;color:#fff;border:none;
-  border-radius:8px;font-weight:600;font-size:13px;transition:opacity .15s}
-.btn-dark:hover{opacity:.8}
-.divider{display:flex;align-items:center;gap:8px;margin:16px 0;color:#94a3b8;font-size:12px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0}
-.err-txt{color:#dc2626;font-size:12px;margin-top:6px}
+#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:12px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.clbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.cval{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div id="header">
-  <div class="hdr-inner">
+<div id="hdr">
+  <div class="hi">
     <div style="display:flex;align-items:center;gap:12px">
       <div class="logo">BU</div>
-      <div>
-        <div class="hdr-name">Batuhan Uçançelik</div>
-        <div class="hdr-sub">Soru Takip Defteri</div>
-      </div>
+      <div><div class="hn">Batuhan Uçançelik</div><div class="hs">Soru Takip Defteri</div></div>
     </div>
-    <button id="sync-btn" onclick="openModal()">☁️ Sync</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="urlen" style="font-size:11px;color:#94a3b8"></span>
+      <button class="cbtn" id="cbtn" onclick="copyLink()">🔗 Linki Kopyala</button>
+    </div>
   </div>
 </div>
 
-<!-- GRAND TOTALS -->
-<div id="grand-bar">
-  <div class="grand-inner">
-    <div class="grand-title">Toplam Çözülen Soru Sayısı</div>
-    <div id="grand-grid"></div>
+<div id="sbar">
+  <div class="si">
+    <span class="sl">Paylaşım Linki:</span>
+    <span class="su" id="surl">—</span>
   </div>
 </div>
 
-<!-- CONTENT -->
-<div id="content">
-  <div id="sync-notice" onclick="openModal()">
-    <span style="font-size:18px">☁️</span>
-    <div><strong>Cihazlar arası senkron kapalı.</strong>
-    <span style="color:#92400e"> Tıklayarak oda oluşturun veya mevcut odaya katılın.</span></div>
+<div id="stbar">
+  <div class="sd" id="sdot"></div>
+  <span id="stxt">Hazır</span>
+</div>
+
+<div id="gbar">
+  <div class="gi">
+    <div class="gt">Toplam Çözülen Soru Sayısı</div>
+    <div id="gg"></div>
   </div>
-  <div id="week-tabs"></div>
-  <div id="sec-tabs"></div>
-  <div id="table-wrap"><div class="tbl-scroll"><table id="main-table"></table></div></div>
+</div>
+
+<div id="cnt">
+  <div id="wtabs"></div>
+  <div id="stabs"></div>
+  <div id="twrap"><div class="tscroll"><table id="mt"></table></div></div>
   <div id="cards"></div>
-  <div id="footer"></div>
-</div>
-
-<!-- MODAL -->
-<div id="modal-overlay" class="hidden" onclick="overlayClick(event)">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div class="modal-title">🔄 Cihaz Senkronu</div>
-      <button onclick="closeModal()" style="border:none;background:none;font-size:20px;color:#94a3b8;cursor:pointer">✕</button>
-    </div>
-    <div id="modal-room-box" class="room-box" style="display:none">
-      <div style="font-size:11px;color:#16a34a;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Oda Kodunuz</div>
-      <div class="room-code" id="modal-room-code">—</div>
-      <div style="font-size:11px;color:#16a34a;margin-top:6px">Bu kodu diğer cihazlara girin ✓</div>
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:500">Var olan odaya katıl:</div>
-      <div style="display:flex;gap:8px">
-        <input class="modal-input" id="join-input" placeholder="ODA KODUNU GİRİN"
-          onkeydown="if(event.key==='Enter')joinRoom()">
-        <button class="btn-primary" onclick="joinRoom()">Katıl</button>
-      </div>
-      <div class="err-txt hidden" id="join-err"></div>
-    </div>
-    <div class="divider">veya</div>
-    <button class="btn-dark" onclick="createRoom()">Yeni Oda Oluştur</button>
-    <div style="margin-top:14px;font-size:11px;color:#94a3b8;line-height:1.7;text-align:center">
-      Veriler <strong>jsonblob.com</strong>'da ücretsiz saklanır.<br>
-      Oda kodu = paylaşım anahtarınız.
-    </div>
-  </div>
+  <div style="margin-top:10px;font-size:11px;color:#94a3b8;text-align:center">Net = Doğru − Yanlış÷4 · Veriler URL'de saklanır, linki paylaşın</div>
 </div>
 
 <script>
-/* ── Constants ── */
-const SUBS  = ['TÜR','MAT','GEO','FİZ','KİM','BİY','TAR','COĞ','FEL','DİN'];
-const DAYS  = ['PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ','PAZAR'];
-const API   = 'https://jsonblob.com/api/jsonBlob';
-const LS_KEY= 'soru_takip_roomid_v2';
-const TABS  = [{id:'dersler',label:'📚 Dersler'},{id:'paragraf',label:'📖 Paragraf'},{id:'problem',label:'🧮 Problem'}];
+var SUBS = ['TÜR','MAT','GEO','FİZ','KİM','BİY','TAR','COĞ','FEL','DİN'];
+var DAYS = ['PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ','PAZAR'];
+var TABS = [{id:'dersler',lbl:'📚 Dersler'},{id:'paragraf',lbl:'📖 Paragraf'},{id:'problem',lbl:'🧮 Problem'}];
 
-let weeks    = [mkWeek(1)];
-let wIdx     = 0;
-let tab      = 'dersler';
-let roomId   = localStorage.getItem(LS_KEY) || '';
-let saveTimer= null;
+var weeks = [];
+var wIdx = 0;
+var curTab = 'dersler';
+var saveTimer = null;
 
-/* ── Data helpers ── */
-function n(v){ return parseFloat(v)||0; }
-function calcNet(d,y){ return +(n(d)-n(y)/4).toFixed(2); }
+function toNum(v) { return parseFloat(v) || 0; }
+function calcNet(d, y) { return +(toNum(d) - toNum(y) / 4).toFixed(2); }
 
-function mkDay(){
+function mkDay() {
+  var s = {};
+  SUBS.forEach(function(k) { s[k] = ''; });
   return {
-    s: Object.fromEntries(SUBS.map(k=>[k,''])),
-    sure:'',
-    paragraf:{soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''},
-    problem: {soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''}
+    s: s, sure: '',
+    paragraf: {soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''},
+    problem:  {soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''}
   };
 }
 
-function mkWeek(i){
-  return { id:`w${Date.now()}${i}`, name:`${i}. Hafta`,
-    days: Object.fromEntries(DAYS.map(d=>[d,mkDay()])) };
+function mkWeek(i) {
+  var days = {};
+  DAYS.forEach(function(d) { days[d] = mkDay(); });
+  return { id: 'w'+i, name: i+'. Hafta', days: days };
 }
 
-function weekTotals(wk){
-  const sb=Object.fromEntries(SUBS.map(s=>[s,0]));
-  let sure=0;
-  const p={soru:0,dogru:0,yanlis:0,bos:0,sure:0};
-  const pr={soru:0,dogru:0,yanlis:0,bos:0,sure:0};
-  DAYS.forEach(d=>{
-    const dy=wk.days[d];
-    SUBS.forEach(s=>sb[s]+=n(dy.s[s]));
-    sure+=n(dy.sure);
-    ['soru','dogru','yanlis','bos','sure'].forEach(f=>{
-      p[f]+=n(dy.paragraf[f]); pr[f]+=n(dy.problem[f]);
+function weekTot(wk) {
+  var sb = {};
+  SUBS.forEach(function(s) { sb[s] = 0; });
+  var sure = 0;
+  var p  = {soru:0,dogru:0,yanlis:0,bos:0,sure:0};
+  var pr = {soru:0,dogru:0,yanlis:0,bos:0,sure:0};
+  DAYS.forEach(function(d) {
+    var dy = wk.days[d];
+    SUBS.forEach(function(s) { sb[s] += toNum(dy.s[s]); });
+    sure += toNum(dy.sure);
+    ['soru','dogru','yanlis','bos','sure'].forEach(function(f) {
+      p[f]  += toNum(dy.paragraf[f]);
+      pr[f] += toNum(dy.problem[f]);
     });
   });
-  const st=Object.values(sb).reduce((a,b)=>a+b,0);
-  return { sb, sure, st,
-    paragraf:{...p, net:calcNet(p.dogru,p.yanlis)},
-    problem: {...pr,net:calcNet(pr.dogru,pr.yanlis)},
-    total: st+p.soru+pr.soru
+  var st = SUBS.reduce(function(a,s) { return a + sb[s]; }, 0);
+  return {
+    sb: sb, sure: sure, st: st,
+    paragraf: {soru:p.soru, dogru:p.dogru, yanlis:p.yanlis, bos:p.bos, sure:p.sure, net:calcNet(p.dogru,p.yanlis)},
+    problem:  {soru:pr.soru,dogru:pr.dogru,yanlis:pr.yanlis,bos:pr.bos,sure:pr.sure,net:calcNet(pr.dogru,pr.yanlis)},
+    total: st + p.soru + pr.soru
   };
 }
 
-function grandTotals(){
-  const sb=Object.fromEntries(SUBS.map(s=>[s,0]));
-  let para=0, prob=0;
-  weeks.forEach(w=>{
-    const t=weekTotals(w);
-    SUBS.forEach(s=>sb[s]+=t.sb[s]);
-    para+=t.paragraf.soru; prob+=t.problem.soru;
+function grandTot() {
+  var sb = {};
+  SUBS.forEach(function(s) { sb[s] = 0; });
+  var para = 0, prob = 0;
+  weeks.forEach(function(w) {
+    var t = weekTot(w);
+    SUBS.forEach(function(s) { sb[s] += t.sb[s]; });
+    para += t.paragraf.soru;
+    prob += t.problem.soru;
   });
-  const total=Object.values(sb).reduce((a,b)=>a+b,0)+para+prob;
-  return {...sb, PARAGRAF:para, PROBLEM:prob, TOPLAM:total};
+  var total = SUBS.reduce(function(a,s) { return a + sb[s]; }, 0) + para + prob;
+  sb.PARAGRAF = para; sb.PROBLEM = prob; sb.TOPLAM = total;
+  return sb;
 }
 
-/* ── Storage ── */
-async function loadBlob(id){
-  const r=await fetch(`${API}/${id}`,{headers:{'Content-Type':'application/json'}});
-  if(!r.ok) throw new Error('Not found');
-  return r.json();
-}
-async function saveBlob(id,data){
-  await fetch(`${API}/${id}`,{method:'PUT',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-}
-async function createBlob(data){
-  const r=await fetch(API,{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  const loc=r.headers.get('Location')||'';
-  return loc.split('/').pop();
+/* ── URL storage using btoa/atob ── */
+function encode(data) {
+  var json = JSON.stringify(data);
+  return btoa(unescape(encodeURIComponent(json)));
 }
 
-function persist(){
+function decode(str) {
+  try {
+    var json = decodeURIComponent(escape(atob(str)));
+    return JSON.parse(json);
+  } catch(e) {
+    return null;
+  }
+}
+
+function saveToURL() {
   clearTimeout(saveTimer);
-  if(!roomId) return;
-  saveTimer=setTimeout(async()=>{
-    try{ await saveBlob(roomId,{weeks}); setSyncLabel('saved'); }
-    catch{ setSyncLabel('error'); }
-  },800);
-  setSyncLabel('saving');
+  setStatus('saving', 'Kaydediliyor…');
+  saveTimer = setTimeout(function() {
+    try {
+      var encoded = encode({weeks: weeks});
+      history.replaceState(null, '', '#' + encoded);
+      updateShareUI();
+      setStatus('saved', 'Kaydedildi ✓');
+    } catch(e) {
+      setStatus('err', 'Kayıt hatası');
+    }
+  }, 500);
 }
 
-function setSyncLabel(state){
-  const btn=document.getElementById('sync-btn');
-  const map={saved:'☁️ Senkron ✓',saving:'⏳ Kaydediliyor',error:'⚠️ Hata',loading:'⏳ Yükleniyor'};
-  btn.textContent=map[state]||'☁️ Sync';
+function loadFromHash() {
+  var hash = location.hash.slice(1);
+  if (!hash) return false;
+  var data = decode(hash);
+  if (data && data.weeks && data.weeks.length) {
+    weeks = data.weeks;
+    return true;
+  }
+  return false;
+}
+
+function updateShareUI() {
+  var url = location.href;
+  document.getElementById('surl').textContent = url;
+  var kb = (url.length / 1024).toFixed(1);
+  document.getElementById('urlen').textContent = kb + ' KB';
+}
+
+function setStatus(state, msg) {
+  var dot = document.getElementById('sdot');
+  dot.className = 'sd' + (state === 'saving' ? ' saving' : state === 'err' ? ' err' : '');
+  document.getElementById('stxt').textContent = msg;
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(location.href).then(function() {
+    var b = document.getElementById('cbtn');
+    b.textContent = '✓ Kopyalandı';
+    b.classList.add('ok');
+    setTimeout(function() { b.textContent = '🔗 Linki Kopyala'; b.classList.remove('ok'); }, 2000);
+  });
 }
 
 /* ── Field update ── */
-function upd(wi,day,sec,field,val){
-  if(sec==='s')       weeks[wi].days[day].s[field]=val;
-  else if(sec==='sure') weeks[wi].days[day].sure=val;
-  else                weeks[wi].days[day][sec][field]=val;
-  persist();
-  renderGrandBar();
+function upd(wi, day, sec, field, val) {
+  if (sec === 's')          weeks[wi].days[day].s[field] = val;
+  else if (sec === 'sure')  weeks[wi].days[day].sure = val;
+  else                      weeks[wi].days[day][sec][field] = val;
+  saveToURL();
+  renderGrand();
   renderCards();
 }
 
 /* ── Render ── */
-function renderGrandBar(){
-  const gt=grandTotals();
-  const g=document.getElementById('grand-grid');
-  g.innerHTML='';
-  SUBS.forEach(s=>{
-    g.innerHTML+=`<div class="grand-col">
-      <div class="grand-val">${gt[s]||0}</div>
-      <div class="grand-lbl">${s}</div></div>`;
+function renderGrand() {
+  var gt = grandTot();
+  var h = '';
+  SUBS.forEach(function(s) {
+    h += '<div class="gc"><div class="gv">' + (gt[s]||0) + '</div><div class="gl">' + s + '</div></div>';
   });
-  g.innerHTML+=`<div class="grand-col">
-    <div class="grand-val blue">${gt.PARAGRAF||0}</div>
-    <div class="grand-lbl">PARAGRAF</div></div>
-  <div class="grand-col" style="border-right:1px solid #334155;padding-right:20px;margin-right:20px">
-    <div class="grand-val pink">${gt.PROBLEM||0}</div>
-    <div class="grand-lbl">PROBLEM</div></div>
-  <div class="grand-col">
-    <div class="grand-val big">${gt.TOPLAM||0}</div>
-    <div class="grand-lbl">TOPLAM</div></div>`;
+  h += '<div class="gc"><div class="gv blue">' + (gt.PARAGRAF||0) + '</div><div class="gl">PARAGRAF</div></div>';
+  h += '<div class="gc sep"><div class="gv pink">' + (gt.PROBLEM||0) + '</div><div class="gl">PROBLEM</div></div>';
+  h += '<div class="gc last"><div class="gv big">' + (gt.TOPLAM||0) + '</div><div class="gl">TOPLAM</div></div>';
+  document.getElementById('gg').innerHTML = h;
 }
 
-function renderWeekTabs(){
-  const c=document.getElementById('week-tabs');
-  c.innerHTML='';
-  weeks.forEach((w,i)=>{
-    const b=document.createElement('button');
-    b.className='week-tab'+(i===wIdx?' active':'');
-    b.textContent=w.name;
-    b.onclick=()=>{ wIdx=i; renderAll(); };
+function renderWeekTabs() {
+  var c = document.getElementById('wtabs');
+  c.innerHTML = '';
+  weeks.forEach(function(w, i) {
+    var b = document.createElement('button');
+    b.className = 'wtab' + (i === wIdx ? ' active' : '');
+    b.textContent = w.name;
+    (function(idx) { b.onclick = function() { wIdx = idx; renderAll(); }; })(i);
     c.appendChild(b);
   });
-  const a=document.createElement('button');
-  a.id='add-week-btn'; a.textContent='+ Hafta Ekle';
-  a.onclick=()=>{
-    weeks.push(mkWeek(weeks.length+1));
-    wIdx=weeks.length-1;
-    persist(); renderAll();
+  var a = document.createElement('button');
+  a.className = 'wadd';
+  a.textContent = '+ Hafta Ekle';
+  a.onclick = function() {
+    weeks.push(mkWeek(weeks.length + 1));
+    wIdx = weeks.length - 1;
+    saveToURL();
+    renderAll();
   };
   c.appendChild(a);
 }
 
-function renderSecTabs(){
-  const c=document.getElementById('sec-tabs');
-  c.innerHTML='';
-  TABS.forEach(t=>{
-    const b=document.createElement('button');
-    b.className='sec-tab'+(t.id===tab?' active':'');
-    b.textContent=t.label;
-    b.onclick=()=>{ tab=t.id; renderTable(); renderSecTabs(); };
+function renderSecTabs() {
+  var c = document.getElementById('stabs');
+  c.innerHTML = '';
+  TABS.forEach(function(t) {
+    var b = document.createElement('button');
+    b.className = 'stab' + (t.id === curTab ? ' active' : '');
+    b.textContent = t.lbl;
+    (function(id) {
+      b.onclick = function() { curTab = id; renderTable(); renderSecTabs(); };
+    })(t.id);
     c.appendChild(b);
   });
 }
 
-function renderTable(){
-  const cw=weeks[wIdx];
-  const cwt=weekTotals(cw);
-  const tbl=document.getElementById('main-table');
+function renderTable() {
+  var cw = weeks[wIdx];
+  var cwt = weekTot(cw);
 
-  /* Build thead */
-  let thead=`<thead><tr>`;
-  thead+=`<th class="day-th">Gün</th>`;
-  if(tab==='dersler'){
-    SUBS.forEach(s=>thead+=`<th>${s}</th>`);
-    thead+=`<th class="blue">TOP.</th><th>Süre</th>`;
+  var thead = '<thead><tr><th class="dh">Gün</th>';
+  if (curTab === 'dersler') {
+    SUBS.forEach(function(s) { thead += '<th>' + s + '</th>'; });
+    thead += '<th style="color:#2563eb;background:#eff6ff">TOP.</th><th>Süre</th>';
   } else {
-    thead+=`<th>Soru</th><th class="green">Doğru</th><th style="color:#dc2626">Yanlış</th>
-      <th>Boş</th><th>Yayın</th><th>Süre</th><th class="net-th">Net</th>`;
+    thead += '<th>Soru</th><th style="color:#16a34a">Doğru</th><th style="color:#dc2626">Yanlış</th><th>Boş</th><th>Yayın</th><th>Süre</th><th style="color:#16a34a;background:#f0fdf4">Net</th>';
   }
-  thead+=`</tr></thead>`;
+  thead += '</tr></thead>';
 
-  /* Build tbody */
-  let tbody=`<tbody>`;
-  DAYS.forEach((day,di)=>{
-    const dd=cw.days[day];
-    const dst=SUBS.reduce((a,s)=>a+n(dd.s[s]),0);
-    const sec=tab==='paragraf'?dd.paragraf:dd.problem;
-    const dn=calcNet(sec.dogru,sec.yanlis);
-    const has=n(sec.dogru)||n(sec.yanlis)||n(sec.soru);
-    tbody+=`<tr class="${di%2===1?'odd':''}">`;
-    tbody+=`<td class="day-td">${day}</td>`;
+  var tbody = '<tbody>';
+  DAYS.forEach(function(day, di) {
+    var dd = cw.days[day];
+    var dst = SUBS.reduce(function(a, s) { return a + toNum(dd.s[s]); }, 0);
+    var sec = curTab === 'paragraf' ? dd.paragraf : dd.problem;
+    var dn = calcNet(sec.dogru, sec.yanlis);
+    var has = toNum(sec.dogru) || toNum(sec.yanlis) || toNum(sec.soru);
+    tbody += '<tr class="' + (di % 2 ? 'odd' : '') + '"><td class="dc">' + day + '</td>';
 
-    if(tab==='dersler'){
-      SUBS.forEach(s=>{
-        tbody+=`<td><input class="cell-input" type="number" min="0"
-          value="${dd.s[s]||''}"
-          onchange="upd(${wIdx},'${day}','s','${s}',this.value)"></td>`;
+    if (curTab === 'dersler') {
+      SUBS.forEach(function(s) {
+        tbody += '<td><input class="ci" type="number" min="0" value="' + (dd.s[s]||'') + '" onchange="upd(' + wIdx + ',\'' + day + '\',\'s\',\'' + s + '\',this.value)"></td>';
       });
-      tbody+=`<td style="font-weight:700;font-family:'JetBrains Mono',monospace;
-        color:${dst?'#2563eb':'#cbd5e1'}">${dst||'—'}</td>`;
-      tbody+=`<td><input class="cell-input" type="number" min="0"
-        value="${dd.sure||''}"
-        onchange="upd(${wIdx},'${day}','sure',null,this.value)"></td>`;
+      tbody += '<td style="font-weight:700;font-family:\'JetBrains Mono\',monospace;color:' + (dst ? '#2563eb' : '#cbd5e1') + '">' + (dst || '—') + '</td>';
+      tbody += '<td><input class="ci" type="number" min="0" value="' + (dd.sure||'') + '" onchange="upd(' + wIdx + ',\'' + day + '\',\'sure\',null,this.value)"></td>';
     } else {
-      ['soru','dogru','yanlis','bos'].forEach(f=>{
-        tbody+=`<td><input class="cell-input" type="number" min="0"
-          value="${sec[f]||''}"
-          onchange="upd(${wIdx},'${day}','${tab}','${f}',this.value)"></td>`;
+      ['soru','dogru','yanlis','bos'].forEach(function(f) {
+        tbody += '<td><input class="ci" type="number" min="0" value="' + (sec[f]||'') + '" onchange="upd(' + wIdx + ',\'' + day + '\',\'' + curTab + '\',\'' + f + '\',this.value)"></td>';
       });
-      tbody+=`<td><input class="cell-input wide" type="text"
-        value="${sec.yayin||''}" placeholder="—"
-        onchange="upd(${wIdx},'${day}','${tab}','yayin',this.value)"></td>`;
-      tbody+=`<td><input class="cell-input" type="number" min="0"
-        value="${sec.sure||''}"
-        onchange="upd(${wIdx},'${day}','${tab}','sure',this.value)"></td>`;
-      tbody+=`<td style="background:${has?'#f0fdf4':'inherit'};font-weight:700;
-        font-family:'JetBrains Mono',monospace;font-size:13px;
-        color:${has?(dn>=0?'#16a34a':'#dc2626'):'#cbd5e1'}">${has?dn:'—'}</td>`;
+      tbody += '<td><input class="ci w" type="text" value="' + (sec.yayin||'') + '" placeholder="—" onchange="upd(' + wIdx + ',\'' + day + '\',\'' + curTab + '\',\'yayin\',this.value)"></td>';
+      tbody += '<td><input class="ci" type="number" min="0" value="' + (sec.sure||'') + '" onchange="upd(' + wIdx + ',\'' + day + '\',\'' + curTab + '\',\'sure\',this.value)"></td>';
+      tbody += '<td style="background:' + (has ? '#f0fdf4' : 'inherit') + ';font-weight:700;font-family:\'JetBrains Mono\',monospace;color:' + (has ? (dn >= 0 ? '#16a34a' : '#dc2626') : '#cbd5e1') + '">' + (has ? dn : '—') + '</td>';
     }
-    tbody+=`</tr>`;
+    tbody += '</tr>';
   });
 
-  /* Totals row */
-  tbody+=`<tr class="total-row" style="border-top:2px solid #e2e8f0">`;
-  tbody+=`<td class="day-td">TOPLAM</td>`;
-  if(tab==='dersler'){
-    SUBS.forEach(s=>tbody+=`<td style="color:${cwt.sb[s]?'#0f172a':'#cbd5e1'}">${cwt.sb[s]||'—'}</td>`);
-    tbody+=`<td class="big-total">${cwt.st||'—'}</td>`;
-    tbody+=`<td style="color:${cwt.sure?'#0f172a':'#cbd5e1'}">${cwt.sure||'—'}</td>`;
+  // Totals row
+  tbody += '<tr class="tot"><td class="dc">TOPLAM</td>';
+  if (curTab === 'dersler') {
+    SUBS.forEach(function(s) {
+      tbody += '<td style="color:' + (cwt.sb[s] ? '#0f172a' : '#cbd5e1') + '">' + (cwt.sb[s] || '—') + '</td>';
+    });
+    tbody += '<td style="background:#dbeafe;font-size:15px;font-weight:800;color:#2563eb">' + (cwt.st || '—') + '</td>';
+    tbody += '<td style="color:' + (cwt.sure ? '#0f172a' : '#cbd5e1') + '">' + (cwt.sure || '—') + '</td>';
   } else {
-    const t=tab==='paragraf'?cwt.paragraf:cwt.problem;
-    const has=t.soru||t.dogru;
-    ['soru','dogru','yanlis','bos'].forEach(f=>
-      tbody+=`<td style="color:${t[f]?'#0f172a':'#cbd5e1'}">${t[f]||'—'}</td>`);
-    tbody+=`<td style="color:#cbd5e1">—</td>`;
-    tbody+=`<td style="color:${t.sure?'#0f172a':'#cbd5e1'}">${t.sure||'—'}</td>`;
-    tbody+=`<td class="net-total" style="color:${has?(t.net>=0?'#16a34a':'#dc2626'):'#cbd5e1'}">${has?t.net:'—'}</td>`;
+    var t = curTab === 'paragraf' ? cwt.paragraf : cwt.problem;
+    var has = t.soru || t.dogru;
+    ['soru','dogru','yanlis','bos'].forEach(function(f) {
+      tbody += '<td style="color:' + (t[f] ? '#0f172a' : '#cbd5e1') + '">' + (t[f] || '—') + '</td>';
+    });
+    tbody += '<td style="color:#cbd5e1">—</td>';
+    tbody += '<td style="color:' + (t.sure ? '#0f172a' : '#cbd5e1') + '">' + (t.sure || '—') + '</td>';
+    tbody += '<td style="background:#dcfce7;font-size:15px;font-weight:800;color:' + (has ? (t.net >= 0 ? '#16a34a' : '#dc2626') : '#cbd5e1') + '">' + (has ? t.net : '—') + '</td>';
   }
-  tbody+=`</tr></tbody>`;
+  tbody += '</tr></tbody>';
 
-  tbl.innerHTML=thead+tbody;
+  document.getElementById('mt').innerHTML = thead + tbody;
 }
 
-function renderCards(){
-  const cwt=weekTotals(weeks[wIdx]);
-  const data=[
-    {label:'Haftalık Toplam',val:cwt.total||'—',cls:'blue'},
-    {label:'Paragraf Net',val:cwt.paragraf.soru?cwt.paragraf.net:'—',
-      cls:cwt.paragraf.net>=0?'green':'red'},
-    {label:'Problem Net', val:cwt.problem.soru?cwt.problem.net:'—',
-      cls:cwt.problem.net>=0?'green':'red'},
-    {label:'Haftalık Süre',val:cwt.sure?`${cwt.sure} dk`:'—',cls:'muted'},
+function renderCards() {
+  var cwt = weekTot(weeks[wIdx]);
+  var data = [
+    {l:'Haftalık Toplam', v: cwt.total || '—', c: '#2563eb'},
+    {l:'Paragraf Net', v: cwt.paragraf.soru ? cwt.paragraf.net : '—', c: cwt.paragraf.net >= 0 ? '#16a34a' : '#dc2626'},
+    {l:'Problem Net',  v: cwt.problem.soru  ? cwt.problem.net  : '—', c: cwt.problem.net  >= 0 ? '#16a34a' : '#dc2626'},
+    {l:'Haftalık Süre',v: cwt.sure ? cwt.sure + ' dk' : '—', c: '#64748b'}
   ];
-  document.getElementById('cards').innerHTML=data.map(c=>`
-    <div class="card">
-      <div class="card-label">${c.label}</div>
-      <div class="card-value ${c.cls}">${c.val}</div>
-    </div>`).join('');
-  document.getElementById('footer').innerHTML=
-    `Net = Doğru − Yanlış÷4 · Veriler ${roomId?'☁️ bulutta':'💾 yerel olarak'} saklanıyor`;
+  document.getElementById('cards').innerHTML = data.map(function(c) {
+    return '<div class="card"><div class="clbl">' + c.l + '</div><div class="cval" style="color:' + c.c + '">' + c.v + '</div></div>';
+  }).join('');
 }
 
-function renderSyncState(){
-  const btn=document.getElementById('sync-btn');
-  const notice=document.getElementById('sync-notice');
-  if(roomId){
-    btn.classList.add('has-room');
-    btn.textContent='☁️ Senkron ✓';
-    notice.classList.add('hidden');
-  } else {
-    btn.classList.remove('has-room');
-    btn.textContent='☁️ Sync';
-    notice.classList.remove('hidden');
-  }
-}
-
-function renderAll(){
+function renderAll() {
   renderWeekTabs();
   renderSecTabs();
   renderTable();
-  renderGrandBar();
+  renderGrand();
   renderCards();
-  renderSyncState();
-}
-
-/* ── Modal ── */
-function openModal(){
-  document.getElementById('modal-overlay').classList.remove('hidden');
-  if(roomId){
-    document.getElementById('modal-room-box').style.display='block';
-    document.getElementById('modal-room-code').textContent=roomId;
-  } else {
-    document.getElementById('modal-room-box').style.display='none';
-  }
-  document.getElementById('join-err').classList.add('hidden');
-  document.getElementById('join-input').value='';
-}
-
-function closeModal(){
-  document.getElementById('modal-overlay').classList.add('hidden');
-}
-
-function overlayClick(e){
-  if(e.target===document.getElementById('modal-overlay')) closeModal();
-}
-
-async function joinRoom(){
-  const code=document.getElementById('join-input').value.trim();
-  const errEl=document.getElementById('join-err');
-  if(!code){ errEl.textContent='Kod girin'; errEl.classList.remove('hidden'); return; }
-  try{
-    const data=await loadBlob(code);
-    roomId=code; localStorage.setItem(LS_KEY,code);
-    if(data?.weeks?.length){ weeks=data.weeks; wIdx=0; }
-    closeModal(); renderAll();
-  } catch{
-    errEl.textContent='Oda bulunamadı. Kodu kontrol edin.';
-    errEl.classList.remove('hidden');
-  }
-}
-
-async function createRoom(){
-  const btn=document.querySelector('.btn-dark');
-  btn.textContent='Oluşturuluyor…'; btn.disabled=true;
-  try{
-    const id=await createBlob({weeks});
-    roomId=id; localStorage.setItem(LS_KEY,id);
-    document.getElementById('modal-room-box').style.display='block';
-    document.getElementById('modal-room-code').textContent=id;
-    renderSyncState();
-    setSyncLabel('saved');
-  } catch{ alert('Hata oluştu, tekrar deneyin.'); }
-  finally{ btn.textContent='Yeni Oda Oluştur'; btn.disabled=false; }
 }
 
 /* ── Init ── */
-(async()=>{
-  if(roomId){
-    setSyncLabel('loading');
-    try{
-      const data=await loadBlob(roomId);
-      if(data?.weeks?.length){ weeks=data.weeks; }
-      setSyncLabel('saved');
-    } catch{
-      localStorage.removeItem(LS_KEY); roomId='';
-    }
-  }
-  renderAll();
-})();
+if (!loadFromHash()) {
+  weeks = [mkWeek(1)];
+}
+updateShareUI();
+setStatus('saved', 'Hazır');
+renderAll();
 </script>
 </body>
 </html>
