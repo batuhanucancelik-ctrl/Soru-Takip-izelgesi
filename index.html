@@ -1,383 +1,560 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soru Takip — Batuhan Uçançelik</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
+::-webkit-scrollbar{height:5px;width:5px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+button{font-family:'Inter',sans-serif;cursor:pointer}
 
-const SUBJECTS = ['TÜR','MAT','GEO','FİZ','KİM','BİY','TAR','COĞ','FEL','DİN'];
-const DAYS = ['PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ','PAZAR'];
-const KEY = 'soru-takip-shared-v1';
-const n = v => parseFloat(v) || 0;
-const calcNet = (d, y) => +(n(d) - n(y) / 4).toFixed(2);
+/* Header */
+#header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:20;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr-inner{max-width:1160px;margin:0 auto;padding:0 16px;display:flex;
+  align-items:center;justify-content:space-between;height:56px;gap:12}
+.logo{width:34px;height:34px;border-radius:9px;background:#2563eb;display:flex;
+  align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
+.hdr-name{font-weight:700;font-size:14px;line-height:1.2}
+.hdr-sub{font-size:10px;color:#94a3b8;margin-top:1px}
+#sync-btn{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;
+  border:1.5px solid #bfdbfe;background:#eff6ff;color:#2563eb;font-size:12px;
+  font-weight:600;transition:all .15s}
+#sync-btn.has-room{border-color:#86efac;background:#f0fdf4;color:#16a34a}
 
-const mkDay = () => ({
-  subjects: Object.fromEntries(SUBJECTS.map(s => [s, ''])),
-  sure: '',
-  paragraf: { soruSayisi:'', dogru:'', yanlis:'', bos:'', yayin:'', sure:'' },
-  problem:  { soruSayisi:'', dogru:'', yanlis:'', bos:'', yayin:'', sure:'' }
-});
+/* Grand totals bar */
+#grand-bar{background:#0f172a;color:#fff;overflow-x:auto}
+.grand-inner{max-width:1160px;margin:0 auto;padding:16px 20px}
+.grand-title{font-size:9px;color:#475569;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:600;margin-bottom:12px}
+#grand-grid{display:flex;align-items:flex-end;gap:0;min-width:max-content}
+.grand-col{text-align:center;padding-right:16px;margin-right:16px;
+  border-right:1px solid #1e293b}
+.grand-col:last-child{border-right:none;padding-right:0;margin-right:0}
+.grand-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;
+  color:#f1f5f9;line-height:1}
+.grand-val.big{font-size:28px;font-weight:900;color:#4ade80}
+.grand-val.blue{color:#60a5fa}
+.grand-val.pink{color:#f472b6}
+.grand-lbl{font-size:9px;color:#475569;margin-top:5px;letter-spacing:.06em}
 
-const mkWeek = (num) => ({
-  id: `${Date.now()}-${num}`,
-  name: `${num}. Hafta`,
-  days: Object.fromEntries(DAYS.map(d => [d, mkDay()]))
-});
+/* Main content */
+#content{max-width:1160px;margin:0 auto;padding:18px 16px 48px}
 
-const weekTotals = (week) => {
-  const subj = Object.fromEntries(SUBJECTS.map(s => [s, 0]));
-  let sure = 0;
-  const para = { soruSayisi:0, dogru:0, yanlis:0, bos:0, sure:0 };
-  const prob = { soruSayisi:0, dogru:0, yanlis:0, bos:0, sure:0 };
-  DAYS.forEach(d => {
-    const day = week.days[d];
-    SUBJECTS.forEach(s => subj[s] += n(day.subjects[s]));
-    sure += n(day.sure);
-    ['soruSayisi','dogru','yanlis','bos','sure'].forEach(f => {
-      para[f] += n(day.paragraf[f]);
-      prob[f] += n(day.problem[f]);
-    });
-  });
-  const subjTotal = Object.values(subj).reduce((a,b)=>a+b,0);
-  return {
-    subjects: subj, sure,
-    paragraf: { ...para, net: calcNet(para.dogru, para.yanlis) },
-    problem:  { ...prob, net: calcNet(prob.dogru, prob.yanlis) },
-    subjTotal,
-    total: subjTotal + para.soruSayisi + prob.soruSayisi
-  };
-};
+/* Notice */
+#sync-notice{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;
+  padding:12px 16px;margin-bottom:14px;cursor:pointer;display:flex;
+  align-items:center;gap:10px;font-size:13px}
+#sync-notice.hidden{display:none}
 
-export default function App() {
-  const [weeks, setWeeks] = useState([mkWeek(1)]);
-  const [wIdx, setWIdx]   = useState(0);
-  const [tab, setTab]     = useState('dersler');
-  const [status, setStatus] = useState('syncing');
-  const timer = useRef(null);
+/* Week tabs */
+#week-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
+.week-tab{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;
+  background:#fff;color:#334155;font-weight:600;font-size:13px;
+  white-space:nowrap;transition:all .15s}
+.week-tab.active{border-color:#2563eb;background:#2563eb;color:#fff;
+  box-shadow:0 2px 8px rgba(37,99,235,.2)}
+#add-week-btn{padding:8px 14px;border-radius:8px;border:1.5px dashed #e2e8f0;
+  background:transparent;color:#94a3b8;font-size:13px;white-space:nowrap}
 
-  // Load shared data
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await window.storage.get(KEY, true);
-        if (r?.value) {
-          const d = JSON.parse(r.value);
-          if (d?.weeks?.length) setWeeks(d.weeks);
-        }
-      } catch(e) {}
-      setStatus('saved');
-    })();
-  }, []);
+/* Section tabs */
+#sec-tabs{display:flex;gap:4px;margin-bottom:12px;background:#fff;padding:4px;
+  border-radius:10px;border:1px solid #e2e8f0;width:fit-content;
+  box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sec-tab{padding:7px 16px;border-radius:7px;border:none;background:transparent;
+  color:#64748b;font-weight:600;font-size:13px;transition:all .15s}
+.sec-tab.active{background:#2563eb;color:#fff}
 
-  const persist = (w) => {
-    setStatus('saving');
-    clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      try {
-        await window.storage.set(KEY, JSON.stringify({ weeks: w }), true);
-        setStatus('saved');
-      } catch(e) { setStatus('error'); }
-    }, 600);
-  };
+/* Table */
+#table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;
+  overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);margin-bottom:14px}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 6px;text-align:center;background:#f8fafc;color:#64748b;
+  font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:2;white-space:nowrap}
+th.day-th{text-align:left;padding-left:10px;position:sticky;left:0;z-index:3;
+  border-right:1px solid #e2e8f0;min-width:108px;background:#f8fafc}
+th.blue{color:#2563eb;background:#eff6ff}
+th.green{color:#16a34a}
+th.net-th{color:#16a34a;background:#f0fdf4}
+td{padding:5px 4px;text-align:center;border-bottom:1px solid #f1f5f9;
+  font-size:13px;white-space:nowrap}
+td.day-td{padding:7px 10px;text-align:left;font-weight:600;font-size:10px;
+  letter-spacing:.04em;color:#475569;background:#f8fafc;position:sticky;left:0;
+  z-index:1;border-right:1px solid #e2e8f0;min-width:108px}
+tr.odd td{background:#fafbfd}
+tr.odd td.day-td{background:#f8fafc}
+tr.total-row td{background:#eff6ff;font-weight:700;
+  font-family:'JetBrains Mono',monospace;font-size:13px}
+tr.total-row td.day-td{background:#dbeafe;color:#2563eb;font-weight:700}
+tr.total-row td.big-total{background:#dbeafe;font-size:15px;font-weight:800;color:#2563eb}
+tr.total-row td.net-total{background:#dcfce7;font-size:15px;font-weight:800}
+.cell-input{width:42px;border:none;background:transparent;text-align:center;
+  font-size:13px;outline:none;color:#0f172a;font-family:'JetBrains Mono',monospace;padding:0}
+.cell-input.wide{width:54px;font-size:12px;color:#64748b}
 
-  const update = (weekIdx, day, section, field, value) => {
-    setWeeks(prev => {
-      const next = JSON.parse(JSON.stringify(prev));
-      if (section === 'subjects') next[weekIdx].days[day].subjects[field] = value;
-      else if (section === 'sure')  next[weekIdx].days[day].sure = value;
-      else                          next[weekIdx].days[day][section][field] = value;
-      persist(next);
-      return next;
-    });
-  };
+/* Summary cards */
+#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;
+  box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.card-value{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700}
+.card-value.blue{color:#2563eb}
+.card-value.green{color:#16a34a}
+.card-value.red{color:#dc2626}
+.card-value.muted{color:#64748b}
 
-  const addWeek = () => {
-    setWeeks(prev => {
-      const next = [...prev, mkWeek(prev.length + 1)];
-      persist(next);
-      setTimeout(() => setWIdx(next.length - 1), 0);
-      return next;
-    });
-  };
+#footer{margin-top:12px;font-size:11px;color:#94a3b8;text-align:center}
 
-  const cw  = weeks[wIdx] || weeks[0];
-  const cwt = useMemo(() => weekTotals(cw), [cw]);
+/* Modal */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:16px}
+#modal-overlay.hidden{display:none}
+.modal{background:#fff;border-radius:16px;padding:28px;max-width:420px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-title{font-weight:700;font-size:17px}
+.room-box{background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;
+  padding:16px;margin:16px 0;text-align:center}
+.room-code{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;
+  color:#15803d;letter-spacing:4px;word-break:break-all}
+.modal-input{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;letter-spacing:1px;
+  text-transform:uppercase}
+.modal-input:focus{border-color:#93c5fd}
+.btn-primary{padding:10px 16px;background:#2563eb;color:#fff;border:none;
+  border-radius:8px;font-weight:600;font-size:13px;transition:opacity .15s}
+.btn-primary:hover{opacity:.85}
+.btn-dark{width:100%;padding:11px;background:#0f172a;color:#fff;border:none;
+  border-radius:8px;font-weight:600;font-size:13px;transition:opacity .15s}
+.btn-dark:hover{opacity:.8}
+.divider{display:flex;align-items:center;gap:8px;margin:16px 0;color:#94a3b8;font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.err-txt{color:#dc2626;font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
 
-  const gt = useMemo(() => {
-    const subj = Object.fromEntries(SUBJECTS.map(s => [s, 0]));
-    let para = 0, prob = 0;
-    weeks.forEach(w => {
-      const t = weekTotals(w);
-      SUBJECTS.forEach(s => subj[s] += t.subjects[s]);
-      para += t.paragraf.soruSayisi;
-      prob += t.problem.soruSayisi;
-    });
-    const total = Object.values(subj).reduce((a,b)=>a+b,0) + para + prob;
-    return { ...subj, PARAGRAF: para, PROBLEM: prob, TOPLAM: total };
-  }, [weeks]);
-
-  // ── Styles ──
-  const C = {
-    bg: '#f6f7f9', surface: '#fff', border: '#e4e7ec',
-    primary: '#111', accent: '#2563eb', muted: '#8492a6',
-    green: '#16a34a', red: '#dc2626', amber: '#d97706',
-    subjRow: '#f8faff', totalRow: '#eff6ff'
-  };
-
-  const th = (extra={}) => ({
-    padding: '9px 6px', textAlign: 'center', background: '#f1f5f9',
-    color: C.muted, fontSize: 10, fontWeight: 600,
-    letterSpacing: '0.07em', textTransform: 'uppercase',
-    borderBottom: `2px solid ${C.border}`,
-    position: 'sticky', top: 0, zIndex: 2, whiteSpace: 'nowrap',
-    ...extra
-  });
-
-  const td = (extra={}) => ({
-    padding: '5px 4px', textAlign: 'center',
-    borderBottom: `1px solid ${C.border}`,
-    fontSize: 13, whiteSpace: 'nowrap', ...extra
-  });
-
-  const stickyDay = (extra={}) => ({
-    ...td(), textAlign: 'left', paddingLeft: 10, fontWeight: 600,
-    fontSize: 10, letterSpacing: '0.04em', color: '#444',
-    background: '#f8fafc', position: 'sticky', left: 0, zIndex: 1,
-    borderRight: `1px solid ${C.border}`, minWidth: 108, ...extra
-  });
-
-  const inputStyle = {
-    width: 46, border: 'none', background: 'transparent',
-    textAlign: 'center', fontSize: 13, outline: 'none',
-    color: C.primary, fontFamily: 'monospace', padding: 0
-  };
-
-  const NI = ({ val, onChange }) => (
-    <input type="number" value={val} onChange={e => onChange(e.target.value)}
-      style={inputStyle} min="0" />
-  );
-
-  const TxtI = ({ val, onChange }) => (
-    <input type="text" value={val} onChange={e => onChange(e.target.value)}
-      style={{ ...inputStyle, width: 52 }} placeholder="—" />
-  );
-
-  const statusColor = { saved: C.green, saving: C.amber, error: C.red, syncing: C.muted };
-  const statusLabel = { saved: 'Kaydedildi', saving: 'Kaydediliyor…', error: 'Hata!', syncing: 'Yükleniyor…' };
-
-  return (
-    <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", background: C.bg, minHeight: '100vh', color: C.primary }}>
-
-      {/* ── HEADER ── */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '13px 20px', position: 'sticky', top: 0, zIndex: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ maxWidth: 1140, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>BU</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>Batuhan Uçançelik</div>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Soru Takip Defteri</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: statusColor[status] }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor[status], display: 'inline-block', boxShadow: `0 0 6px ${statusColor[status]}44` }}></span>
-              {statusLabel[status]}
-            </div>
-            <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 14 }}>🌐</span> Çok cihaz senkron
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── GRAND TOTALS BAR ── */}
-      <div style={{ background: '#0f172a', color: '#fff', padding: '14px 20px' }}>
-        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-          <div style={{ fontSize: 9, letterSpacing: '0.12em', color: '#64748b', marginBottom: 10, textTransform: 'uppercase', fontWeight: 600 }}>
-            Toplam Çözülen Soru Sayısı
-          </div>
-          <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', overflowX: 'auto', paddingBottom: 2 }}>
-            {SUBJECTS.map((s, i) => (
-              <div key={s} style={{ textAlign: 'center', minWidth: 48, paddingRight: 16, borderRight: i < SUBJECTS.length - 1 ? '1px solid #1e293b' : 'none', marginRight: 16 }}>
-                <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#f1f5f9', lineHeight: 1 }}>{gt[s] || 0}</div>
-                <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>{s}</div>
-              </div>
-            ))}
-            <div style={{ textAlign: 'center', minWidth: 56, paddingRight: 16, borderRight: '1px solid #1e293b', marginRight: 16 }}>
-              <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#60a5fa', lineHeight: 1 }}>{gt.PARAGRAF || 0}</div>
-              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>PARAGRAF</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: 56, paddingRight: 20, borderRight: '1px solid #334155', marginRight: 20 }}>
-              <div style={{ fontSize: 20, fontFamily: 'monospace', fontWeight: 700, color: '#f472b6', lineHeight: 1 }}>{gt.PROBLEM || 0}</div>
-              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>PROBLEM</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: 60 }}>
-              <div style={{ fontSize: 28, fontFamily: 'monospace', fontWeight: 900, color: '#4ade80', lineHeight: 1 }}>{gt.TOPLAM || 0}</div>
-              <div style={{ fontSize: 9, color: '#475569', marginTop: 4, letterSpacing: '0.06em' }}>TOPLAM</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '20px 16px 40px' }}>
-
-        {/* Week tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
-          {weeks.map((w, i) => (
-            <button key={w.id} onClick={() => setWIdx(i)} style={{
-              padding: '8px 18px', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap',
-              border: `1.5px solid ${wIdx === i ? C.accent : C.border}`,
-              background: wIdx === i ? C.accent : C.surface,
-              color: wIdx === i ? '#fff' : C.primary,
-              fontWeight: 600, fontSize: 13, transition: 'all 0.15s',
-              fontFamily: 'inherit', boxShadow: wIdx === i ? '0 2px 8px rgba(37,99,235,0.25)' : 'none'
-            }}>{w.name}</button>
-          ))}
-          <button onClick={addWeek} style={{
-            padding: '8px 14px', borderRadius: 8, border: `1.5px dashed ${C.border}`,
-            background: 'transparent', color: C.muted, cursor: 'pointer',
-            fontSize: 13, whiteSpace: 'nowrap', fontFamily: 'inherit',
-            transition: 'border-color 0.15s'
-          }}>+ Hafta Ekle</button>
-        </div>
-
-        {/* Section tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: C.surface, padding: 4, borderRadius: 10, border: `1px solid ${C.border}`, width: 'fit-content', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          {[
-            { id: 'dersler',  label: '📚 Dersler' },
-            { id: 'paragraf', label: '📖 Paragraf' },
-            { id: 'problem',  label: '🧮 Problem' }
-          ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              padding: '7px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
-              background: tab === t.id ? C.accent : 'transparent',
-              color: tab === t.id ? '#fff' : C.muted,
-              fontWeight: 600, fontSize: 13, transition: 'all 0.15s', fontFamily: 'inherit'
-            }}>{t.label}</button>
-          ))}
-        </div>
-
-        {/* Table */}
-        <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.05)', marginBottom: 14 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: tab === 'dersler' ? 680 : 500 }}>
-              <thead>
-                <tr>
-                  <th style={th({ textAlign: 'left', paddingLeft: 10, position: 'sticky', left: 0, zIndex: 3, borderRight: `1px solid ${C.border}`, minWidth: 108 })}>Gün</th>
-
-                  {tab === 'dersler' && <>
-                    {SUBJECTS.map(s => <th key={s} style={th()}>{s}</th>)}
-                    <th style={th({ color: C.accent })}>Toplam</th>
-                    <th style={th()}>Süre</th>
-                  </>}
-
-                  {tab !== 'dersler' && <>
-                    <th style={th()}>Soru</th>
-                    <th style={th({ color: C.green })}>Doğru</th>
-                    <th style={th({ color: C.red })}>Yanlış</th>
-                    <th style={th()}>Boş</th>
-                    <th style={th()}>Yayın</th>
-                    <th style={th()}>Süre</th>
-                    <th style={th({ color: C.green, background: '#f0fdf4' })}>Net</th>
-                  </>}
-                </tr>
-              </thead>
-              <tbody>
-                {DAYS.map((day, di) => {
-                  const dd = cw.days[day];
-                  const daySubjTotal = SUBJECTS.reduce((a,s)=>a+n(dd.subjects[s]),0);
-                  const sec = tab === 'paragraf' ? dd.paragraf : dd.problem;
-                  const dayNet = calcNet(sec.dogru, sec.yanlis);
-                  const hasData = tab !== 'dersler' ? (n(sec.dogru) || n(sec.yanlis) || n(sec.soruSayisi)) : false;
-
-                  return (
-                    <tr key={day} style={{ background: di % 2 === 0 ? '#fff' : '#fafbfd' }}>
-                      <td style={stickyDay()}>{day}</td>
-
-                      {tab === 'dersler' && <>
-                        {SUBJECTS.map(s => (
-                          <td key={s} style={td()}>
-                            <NI val={dd.subjects[s]} onChange={v => update(wIdx, day, 'subjects', s, v)} />
-                          </td>
-                        ))}
-                        <td style={td({ fontWeight: 700, color: daySubjTotal ? C.accent : C.muted, fontFamily: 'monospace' })}>
-                          {daySubjTotal || '—'}
-                        </td>
-                        <td style={td()}>
-                          <NI val={dd.sure} onChange={v => update(wIdx, day, 'sure', null, v)} />
-                        </td>
-                      </>}
-
-                      {tab !== 'dersler' && <>
-                        <td style={td()}><NI val={sec.soruSayisi} onChange={v => update(wIdx, day, tab, 'soruSayisi', v)} /></td>
-                        <td style={td()}><NI val={sec.dogru}      onChange={v => update(wIdx, day, tab, 'dogru', v)} /></td>
-                        <td style={td()}><NI val={sec.yanlis}     onChange={v => update(wIdx, day, tab, 'yanlis', v)} /></td>
-                        <td style={td()}><NI val={sec.bos}        onChange={v => update(wIdx, day, tab, 'bos', v)} /></td>
-                        <td style={td()}><TxtI val={sec.yayin}    onChange={v => update(wIdx, day, tab, 'yayin', v)} /></td>
-                        <td style={td()}><NI val={sec.sure}       onChange={v => update(wIdx, day, tab, 'sure', v)} /></td>
-                        <td style={td({ background: '#f0fdf4', fontWeight: 700, fontFamily: 'monospace', color: hasData ? (dayNet >= 0 ? C.green : C.red) : C.muted })}>
-                          {hasData ? dayNet : '—'}
-                        </td>
-                      </>}
-                    </tr>
-                  );
-                })}
-
-                {/* TOTALS ROW */}
-                <tr style={{ background: C.totalRow, borderTop: `2px solid ${C.border}` }}>
-                  <td style={stickyDay({ background: '#dbeafe', color: C.accent, fontWeight: 700 })}>TOPLAM</td>
-
-                  {tab === 'dersler' && <>
-                    {SUBJECTS.map(s => (
-                      <td key={s} style={td({ fontWeight: 700, fontFamily: 'monospace', color: cwt.subjects[s] ? C.primary : C.muted })}>
-                        {cwt.subjects[s] || '—'}
-                      </td>
-                    ))}
-                    <td style={td({ fontWeight: 800, color: C.accent, fontFamily: 'monospace', fontSize: 15 })}>
-                      {cwt.subjTotal || '—'}
-                    </td>
-                    <td style={td({ fontWeight: 700, fontFamily: 'monospace', color: cwt.sure ? C.primary : C.muted })}>
-                      {cwt.sure || '—'}
-                    </td>
-                  </>}
-
-                  {tab !== 'dersler' && (() => {
-                    const t = tab === 'paragraf' ? cwt.paragraf : cwt.problem;
-                    const hasData = t.soruSayisi || t.dogru;
-                    return <>
-                      {['soruSayisi','dogru','yanlis','bos'].map(f => (
-                        <td key={f} style={td({ fontWeight: 700, fontFamily: 'monospace', color: t[f] ? C.primary : C.muted })}>
-                          {t[f] || '—'}
-                        </td>
-                      ))}
-                      <td style={td({ color: C.muted })}>—</td>
-                      <td style={td({ fontWeight: 700, fontFamily: 'monospace', color: t.sure ? C.primary : C.muted })}>{t.sure || '—'}</td>
-                      <td style={td({ background: '#dcfce7', fontWeight: 800, fontFamily: 'monospace', fontSize: 15, color: hasData ? (t.net >= 0 ? C.green : C.red) : C.muted })}>
-                        {hasData ? t.net : '—'}
-                      </td>
-                    </>;
-                  })()}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-          {[
-            { label: 'Hafta Toplam', val: cwt.total || '—', color: C.accent },
-            { label: 'Paragraf Net', val: cwt.paragraf.soruSayisi ? cwt.paragraf.net : '—', color: cwt.paragraf.net >= 0 ? C.green : C.red },
-            { label: 'Problem Net',  val: cwt.problem.soruSayisi  ? cwt.problem.net  : '—', color: cwt.problem.net  >= 0 ? C.green : C.red },
-            { label: 'Toplam Süre',  val: cwt.sure ? `${cwt.sure} dk` : '—', color: C.muted },
-          ].map(card => (
-            <div key={card.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>{card.label}</div>
-              <div style={{ fontSize: 26, fontFamily: 'monospace', fontWeight: 700, color: card.color }}>{card.val}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 14, fontSize: 11, color: C.muted, textAlign: 'center' }}>
-          Veriler tüm cihazlarda paylaşımlı olarak saklanır · Net = Doğru − Yanlış÷4
-        </div>
+<!-- HEADER -->
+<div id="header">
+  <div class="hdr-inner">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="logo">BU</div>
+      <div>
+        <div class="hdr-name">Batuhan Uçançelik</div>
+        <div class="hdr-sub">Soru Takip Defteri</div>
       </div>
     </div>
-  );
+    <button id="sync-btn" onclick="openModal()">☁️ Sync</button>
+  </div>
+</div>
+
+<!-- GRAND TOTALS -->
+<div id="grand-bar">
+  <div class="grand-inner">
+    <div class="grand-title">Toplam Çözülen Soru Sayısı</div>
+    <div id="grand-grid"></div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+  <div id="sync-notice" onclick="openModal()">
+    <span style="font-size:18px">☁️</span>
+    <div><strong>Cihazlar arası senkron kapalı.</strong>
+    <span style="color:#92400e"> Tıklayarak oda oluşturun veya mevcut odaya katılın.</span></div>
+  </div>
+  <div id="week-tabs"></div>
+  <div id="sec-tabs"></div>
+  <div id="table-wrap"><div class="tbl-scroll"><table id="main-table"></table></div></div>
+  <div id="cards"></div>
+  <div id="footer"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="hidden" onclick="overlayClick(event)">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="modal-title">🔄 Cihaz Senkronu</div>
+      <button onclick="closeModal()" style="border:none;background:none;font-size:20px;color:#94a3b8;cursor:pointer">✕</button>
+    </div>
+    <div id="modal-room-box" class="room-box" style="display:none">
+      <div style="font-size:11px;color:#16a34a;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Oda Kodunuz</div>
+      <div class="room-code" id="modal-room-code">—</div>
+      <div style="font-size:11px;color:#16a34a;margin-top:6px">Bu kodu diğer cihazlara girin ✓</div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:500">Var olan odaya katıl:</div>
+      <div style="display:flex;gap:8px">
+        <input class="modal-input" id="join-input" placeholder="ODA KODUNU GİRİN"
+          onkeydown="if(event.key==='Enter')joinRoom()">
+        <button class="btn-primary" onclick="joinRoom()">Katıl</button>
+      </div>
+      <div class="err-txt hidden" id="join-err"></div>
+    </div>
+    <div class="divider">veya</div>
+    <button class="btn-dark" onclick="createRoom()">Yeni Oda Oluştur</button>
+    <div style="margin-top:14px;font-size:11px;color:#94a3b8;line-height:1.7;text-align:center">
+      Veriler <strong>jsonblob.com</strong>'da ücretsiz saklanır.<br>
+      Oda kodu = paylaşım anahtarınız.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Constants ── */
+const SUBS  = ['TÜR','MAT','GEO','FİZ','KİM','BİY','TAR','COĞ','FEL','DİN'];
+const DAYS  = ['PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ','PAZAR'];
+const API   = 'https://jsonblob.com/api/jsonBlob';
+const LS_KEY= 'soru_takip_roomid_v2';
+const TABS  = [{id:'dersler',label:'📚 Dersler'},{id:'paragraf',label:'📖 Paragraf'},{id:'problem',label:'🧮 Problem'}];
+
+let weeks    = [mkWeek(1)];
+let wIdx     = 0;
+let tab      = 'dersler';
+let roomId   = localStorage.getItem(LS_KEY) || '';
+let saveTimer= null;
+
+/* ── Data helpers ── */
+function n(v){ return parseFloat(v)||0; }
+function calcNet(d,y){ return +(n(d)-n(y)/4).toFixed(2); }
+
+function mkDay(){
+  return {
+    s: Object.fromEntries(SUBS.map(k=>[k,''])),
+    sure:'',
+    paragraf:{soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''},
+    problem: {soru:'',dogru:'',yanlis:'',bos:'',yayin:'',sure:''}
+  };
 }
+
+function mkWeek(i){
+  return { id:`w${Date.now()}${i}`, name:`${i}. Hafta`,
+    days: Object.fromEntries(DAYS.map(d=>[d,mkDay()])) };
+}
+
+function weekTotals(wk){
+  const sb=Object.fromEntries(SUBS.map(s=>[s,0]));
+  let sure=0;
+  const p={soru:0,dogru:0,yanlis:0,bos:0,sure:0};
+  const pr={soru:0,dogru:0,yanlis:0,bos:0,sure:0};
+  DAYS.forEach(d=>{
+    const dy=wk.days[d];
+    SUBS.forEach(s=>sb[s]+=n(dy.s[s]));
+    sure+=n(dy.sure);
+    ['soru','dogru','yanlis','bos','sure'].forEach(f=>{
+      p[f]+=n(dy.paragraf[f]); pr[f]+=n(dy.problem[f]);
+    });
+  });
+  const st=Object.values(sb).reduce((a,b)=>a+b,0);
+  return { sb, sure, st,
+    paragraf:{...p, net:calcNet(p.dogru,p.yanlis)},
+    problem: {...pr,net:calcNet(pr.dogru,pr.yanlis)},
+    total: st+p.soru+pr.soru
+  };
+}
+
+function grandTotals(){
+  const sb=Object.fromEntries(SUBS.map(s=>[s,0]));
+  let para=0, prob=0;
+  weeks.forEach(w=>{
+    const t=weekTotals(w);
+    SUBS.forEach(s=>sb[s]+=t.sb[s]);
+    para+=t.paragraf.soru; prob+=t.problem.soru;
+  });
+  const total=Object.values(sb).reduce((a,b)=>a+b,0)+para+prob;
+  return {...sb, PARAGRAF:para, PROBLEM:prob, TOPLAM:total};
+}
+
+/* ── Storage ── */
+async function loadBlob(id){
+  const r=await fetch(`${API}/${id}`,{headers:{'Content-Type':'application/json'}});
+  if(!r.ok) throw new Error('Not found');
+  return r.json();
+}
+async function saveBlob(id,data){
+  await fetch(`${API}/${id}`,{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+}
+async function createBlob(data){
+  const r=await fetch(API,{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const loc=r.headers.get('Location')||'';
+  return loc.split('/').pop();
+}
+
+function persist(){
+  clearTimeout(saveTimer);
+  if(!roomId) return;
+  saveTimer=setTimeout(async()=>{
+    try{ await saveBlob(roomId,{weeks}); setSyncLabel('saved'); }
+    catch{ setSyncLabel('error'); }
+  },800);
+  setSyncLabel('saving');
+}
+
+function setSyncLabel(state){
+  const btn=document.getElementById('sync-btn');
+  const map={saved:'☁️ Senkron ✓',saving:'⏳ Kaydediliyor',error:'⚠️ Hata',loading:'⏳ Yükleniyor'};
+  btn.textContent=map[state]||'☁️ Sync';
+}
+
+/* ── Field update ── */
+function upd(wi,day,sec,field,val){
+  if(sec==='s')       weeks[wi].days[day].s[field]=val;
+  else if(sec==='sure') weeks[wi].days[day].sure=val;
+  else                weeks[wi].days[day][sec][field]=val;
+  persist();
+  renderGrandBar();
+  renderCards();
+}
+
+/* ── Render ── */
+function renderGrandBar(){
+  const gt=grandTotals();
+  const g=document.getElementById('grand-grid');
+  g.innerHTML='';
+  SUBS.forEach(s=>{
+    g.innerHTML+=`<div class="grand-col">
+      <div class="grand-val">${gt[s]||0}</div>
+      <div class="grand-lbl">${s}</div></div>`;
+  });
+  g.innerHTML+=`<div class="grand-col">
+    <div class="grand-val blue">${gt.PARAGRAF||0}</div>
+    <div class="grand-lbl">PARAGRAF</div></div>
+  <div class="grand-col" style="border-right:1px solid #334155;padding-right:20px;margin-right:20px">
+    <div class="grand-val pink">${gt.PROBLEM||0}</div>
+    <div class="grand-lbl">PROBLEM</div></div>
+  <div class="grand-col">
+    <div class="grand-val big">${gt.TOPLAM||0}</div>
+    <div class="grand-lbl">TOPLAM</div></div>`;
+}
+
+function renderWeekTabs(){
+  const c=document.getElementById('week-tabs');
+  c.innerHTML='';
+  weeks.forEach((w,i)=>{
+    const b=document.createElement('button');
+    b.className='week-tab'+(i===wIdx?' active':'');
+    b.textContent=w.name;
+    b.onclick=()=>{ wIdx=i; renderAll(); };
+    c.appendChild(b);
+  });
+  const a=document.createElement('button');
+  a.id='add-week-btn'; a.textContent='+ Hafta Ekle';
+  a.onclick=()=>{
+    weeks.push(mkWeek(weeks.length+1));
+    wIdx=weeks.length-1;
+    persist(); renderAll();
+  };
+  c.appendChild(a);
+}
+
+function renderSecTabs(){
+  const c=document.getElementById('sec-tabs');
+  c.innerHTML='';
+  TABS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='sec-tab'+(t.id===tab?' active':'');
+    b.textContent=t.label;
+    b.onclick=()=>{ tab=t.id; renderTable(); renderSecTabs(); };
+    c.appendChild(b);
+  });
+}
+
+function renderTable(){
+  const cw=weeks[wIdx];
+  const cwt=weekTotals(cw);
+  const tbl=document.getElementById('main-table');
+
+  /* Build thead */
+  let thead=`<thead><tr>`;
+  thead+=`<th class="day-th">Gün</th>`;
+  if(tab==='dersler'){
+    SUBS.forEach(s=>thead+=`<th>${s}</th>`);
+    thead+=`<th class="blue">TOP.</th><th>Süre</th>`;
+  } else {
+    thead+=`<th>Soru</th><th class="green">Doğru</th><th style="color:#dc2626">Yanlış</th>
+      <th>Boş</th><th>Yayın</th><th>Süre</th><th class="net-th">Net</th>`;
+  }
+  thead+=`</tr></thead>`;
+
+  /* Build tbody */
+  let tbody=`<tbody>`;
+  DAYS.forEach((day,di)=>{
+    const dd=cw.days[day];
+    const dst=SUBS.reduce((a,s)=>a+n(dd.s[s]),0);
+    const sec=tab==='paragraf'?dd.paragraf:dd.problem;
+    const dn=calcNet(sec.dogru,sec.yanlis);
+    const has=n(sec.dogru)||n(sec.yanlis)||n(sec.soru);
+    tbody+=`<tr class="${di%2===1?'odd':''}">`;
+    tbody+=`<td class="day-td">${day}</td>`;
+
+    if(tab==='dersler'){
+      SUBS.forEach(s=>{
+        tbody+=`<td><input class="cell-input" type="number" min="0"
+          value="${dd.s[s]||''}"
+          onchange="upd(${wIdx},'${day}','s','${s}',this.value)"></td>`;
+      });
+      tbody+=`<td style="font-weight:700;font-family:'JetBrains Mono',monospace;
+        color:${dst?'#2563eb':'#cbd5e1'}">${dst||'—'}</td>`;
+      tbody+=`<td><input class="cell-input" type="number" min="0"
+        value="${dd.sure||''}"
+        onchange="upd(${wIdx},'${day}','sure',null,this.value)"></td>`;
+    } else {
+      ['soru','dogru','yanlis','bos'].forEach(f=>{
+        tbody+=`<td><input class="cell-input" type="number" min="0"
+          value="${sec[f]||''}"
+          onchange="upd(${wIdx},'${day}','${tab}','${f}',this.value)"></td>`;
+      });
+      tbody+=`<td><input class="cell-input wide" type="text"
+        value="${sec.yayin||''}" placeholder="—"
+        onchange="upd(${wIdx},'${day}','${tab}','yayin',this.value)"></td>`;
+      tbody+=`<td><input class="cell-input" type="number" min="0"
+        value="${sec.sure||''}"
+        onchange="upd(${wIdx},'${day}','${tab}','sure',this.value)"></td>`;
+      tbody+=`<td style="background:${has?'#f0fdf4':'inherit'};font-weight:700;
+        font-family:'JetBrains Mono',monospace;font-size:13px;
+        color:${has?(dn>=0?'#16a34a':'#dc2626'):'#cbd5e1'}">${has?dn:'—'}</td>`;
+    }
+    tbody+=`</tr>`;
+  });
+
+  /* Totals row */
+  tbody+=`<tr class="total-row" style="border-top:2px solid #e2e8f0">`;
+  tbody+=`<td class="day-td">TOPLAM</td>`;
+  if(tab==='dersler'){
+    SUBS.forEach(s=>tbody+=`<td style="color:${cwt.sb[s]?'#0f172a':'#cbd5e1'}">${cwt.sb[s]||'—'}</td>`);
+    tbody+=`<td class="big-total">${cwt.st||'—'}</td>`;
+    tbody+=`<td style="color:${cwt.sure?'#0f172a':'#cbd5e1'}">${cwt.sure||'—'}</td>`;
+  } else {
+    const t=tab==='paragraf'?cwt.paragraf:cwt.problem;
+    const has=t.soru||t.dogru;
+    ['soru','dogru','yanlis','bos'].forEach(f=>
+      tbody+=`<td style="color:${t[f]?'#0f172a':'#cbd5e1'}">${t[f]||'—'}</td>`);
+    tbody+=`<td style="color:#cbd5e1">—</td>`;
+    tbody+=`<td style="color:${t.sure?'#0f172a':'#cbd5e1'}">${t.sure||'—'}</td>`;
+    tbody+=`<td class="net-total" style="color:${has?(t.net>=0?'#16a34a':'#dc2626'):'#cbd5e1'}">${has?t.net:'—'}</td>`;
+  }
+  tbody+=`</tr></tbody>`;
+
+  tbl.innerHTML=thead+tbody;
+}
+
+function renderCards(){
+  const cwt=weekTotals(weeks[wIdx]);
+  const data=[
+    {label:'Haftalık Toplam',val:cwt.total||'—',cls:'blue'},
+    {label:'Paragraf Net',val:cwt.paragraf.soru?cwt.paragraf.net:'—',
+      cls:cwt.paragraf.net>=0?'green':'red'},
+    {label:'Problem Net', val:cwt.problem.soru?cwt.problem.net:'—',
+      cls:cwt.problem.net>=0?'green':'red'},
+    {label:'Haftalık Süre',val:cwt.sure?`${cwt.sure} dk`:'—',cls:'muted'},
+  ];
+  document.getElementById('cards').innerHTML=data.map(c=>`
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value ${c.cls}">${c.val}</div>
+    </div>`).join('');
+  document.getElementById('footer').innerHTML=
+    `Net = Doğru − Yanlış÷4 · Veriler ${roomId?'☁️ bulutta':'💾 yerel olarak'} saklanıyor`;
+}
+
+function renderSyncState(){
+  const btn=document.getElementById('sync-btn');
+  const notice=document.getElementById('sync-notice');
+  if(roomId){
+    btn.classList.add('has-room');
+    btn.textContent='☁️ Senkron ✓';
+    notice.classList.add('hidden');
+  } else {
+    btn.classList.remove('has-room');
+    btn.textContent='☁️ Sync';
+    notice.classList.remove('hidden');
+  }
+}
+
+function renderAll(){
+  renderWeekTabs();
+  renderSecTabs();
+  renderTable();
+  renderGrandBar();
+  renderCards();
+  renderSyncState();
+}
+
+/* ── Modal ── */
+function openModal(){
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  if(roomId){
+    document.getElementById('modal-room-box').style.display='block';
+    document.getElementById('modal-room-code').textContent=roomId;
+  } else {
+    document.getElementById('modal-room-box').style.display='none';
+  }
+  document.getElementById('join-err').classList.add('hidden');
+  document.getElementById('join-input').value='';
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function overlayClick(e){
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+}
+
+async function joinRoom(){
+  const code=document.getElementById('join-input').value.trim();
+  const errEl=document.getElementById('join-err');
+  if(!code){ errEl.textContent='Kod girin'; errEl.classList.remove('hidden'); return; }
+  try{
+    const data=await loadBlob(code);
+    roomId=code; localStorage.setItem(LS_KEY,code);
+    if(data?.weeks?.length){ weeks=data.weeks; wIdx=0; }
+    closeModal(); renderAll();
+  } catch{
+    errEl.textContent='Oda bulunamadı. Kodu kontrol edin.';
+    errEl.classList.remove('hidden');
+  }
+}
+
+async function createRoom(){
+  const btn=document.querySelector('.btn-dark');
+  btn.textContent='Oluşturuluyor…'; btn.disabled=true;
+  try{
+    const id=await createBlob({weeks});
+    roomId=id; localStorage.setItem(LS_KEY,id);
+    document.getElementById('modal-room-box').style.display='block';
+    document.getElementById('modal-room-code').textContent=id;
+    renderSyncState();
+    setSyncLabel('saved');
+  } catch{ alert('Hata oluştu, tekrar deneyin.'); }
+  finally{ btn.textContent='Yeni Oda Oluştur'; btn.disabled=false; }
+}
+
+/* ── Init ── */
+(async()=>{
+  if(roomId){
+    setSyncLabel('loading');
+    try{
+      const data=await loadBlob(roomId);
+      if(data?.weeks?.length){ weeks=data.weeks; }
+      setSyncLabel('saved');
+    } catch{
+      localStorage.removeItem(LS_KEY); roomId='';
+    }
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
